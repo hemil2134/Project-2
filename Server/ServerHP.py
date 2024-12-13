@@ -1,3 +1,13 @@
+'''
+TPRG 2131 Fall 2024 Project 2.
+Dec, 2024
+Hemil Prajapati (100942152).
+This program is strictly my own work. Any material
+beyond course learning materials that is taken from
+the Web or other sources is properly cited, giving.
+credit to the original author(s).
+'''
+
 import socket
 import json, time
 import PySimpleGUI as sg
