@@ -2,6 +2,9 @@ import socket
 import sys
 import json, time
 import os, io
+from random import randint as randint
+from pathlib import Path
+import PySimpleGUI as sg
 
 from pathlib import Path
 
@@ -16,31 +19,61 @@ if (IS_RPI):
         print('Socket error because of %s' %(err))
 
 port = 1500
-#address = "192.168.10.121" # of server, so we can read the vcgencmd data
-address = "127.0.0.1"# to run on Pi with local server
+address = "127.0.0.1"
+
+# Function to get the CPU temperature
+def measure_temp():
+    t = os.popen('vcgencmd measure_temp').readline()
+    temp = float(t.replace("temp=","").replace("'C\n",""))
+    return temp
+
+# Function to get core voltage
+def measure_volts_core():
+    v = os.popen('vcgencmd measure_volts core').readline()
+    volts = float(v.replace("volt=", "").replace("volts=", "").replace("V\n", "").strip())
+    return volts
+
+# Function to get SDRAM voltage
+def measure_volts_sdram_i():
+    vsd = os.popen('vcgencmd measure_volts sdram_p').readline()
+    vsdvolts = float(vsd.replace("volt=", "").replace("volts=", "").replace("V\n", "").strip())
+    return vsdvolts
+
+# Function to get memory allocated to the ARM CPU
+def memory_arm():
+    ma = os.popen('vcgencmd get_mem arm').readline()
+    ma2 = float(ma.replace("arm=","").replace("M\n",""))
+    return ma2
+
+# Function to get the clock frequency of the ARM CPU
+def clock_frequency_arm():
+    cfa = os.popen('vcgencmd measure_clock arm').readline()
+    cfa2 = float(cfa.replace("frequency(48)=",""))
+    return cfa2
 
 try:
     sock.connect((address, port))
-    for i in range(10):
-        v = os.popen('vcgencmd measure_volts ain1').readline() #gets from the os, using vcgencmd - the core-voltage
-        core = os.popen('vcgencmd measure_temp').readline() #gets from the os, using vcgencmd - the core-temperature
-
-        jsonResult = {"thing": [{"temp":"You're"}], "volts":v, "temp-core":core, "it =": i}
-
+    for i in range(50):
+        jsonResult = {"temp-core":measure_temp(),
+                      "volts":measure_volts_core(),
+                      "sdram volts":measure_volts_sdram_i(),
+                      "arm":memory_arm(),
+                      "frequency":clock_frequency_arm(),
+                      "it": i # Iteration count
+                      }
+        
+        # Convert JSON object to a string
         jsonResult = json.dumps(jsonResult)
-
+        
+        # Convert JSON string to bytes for sending
         jsonbyte = bytearray(jsonResult,"UTF-8")
-        print("this Json byte, sent ->", jsonbyte)
+        sock.send(jsonbyte) # Send data to the server
+        time.sleep(2) # Wait for 2 seconds before sending the next set of data
 
-        print(v, " it = ",i, " ",core)
-        #sock. send(jsonResult)
-        sock.send(jsonbyte)
-        time.sleep(5)
-
-except socket.gaierror: # = short form for getaddrinfo()
-
-    print('There an error resolving the host')
-    sock.close()
+except socket.gaierror: # If there is a network error
+    print('There an error resolving the host') # Print error message
+    sock.close() # Close the socket
+    
 finally:
-    print("Sorry lost connection with server")
-    exit()
+    # Clean up and close everything
+    sock.close() # Close the socket  
