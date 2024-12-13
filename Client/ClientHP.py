@@ -6,7 +6,7 @@ from random import randint as randint
 from pathlib import Path
 import PySimpleGUI as sg
 
-
+# Set up the GUI appearance
 sg.theme('Light Yellow')
 layout = [
     [sg.Text('Connection Status:')], # Label for connection status
@@ -14,8 +14,10 @@ layout = [
     [sg.Exit(tooltip='Click to exit the program')] # Exit button
 ]
 
+# Create the window with the specified layout
 window = sg.Window('Client Status', layout, finalize=True)
 
+# Check if the program is running on a Raspberry Pi
 IS_RPI = Path("/etc/rpi-issue").exists() # File exists only on Raspberry Pi
 print(IS_RPI) # Print whether it is running on Raspberry Pi
 
@@ -62,7 +64,7 @@ def clock_frequency_arm():
 
 try:
     sock.connect((address, port)) # Connect to the given IP and port
-    window['-STATUS-'].update('Connected', text_color='green')
+    window['-STATUS-'].update('Connected', text_color='green') # Update GUI to show connection status
 
     # Loop to send data 50 times
     for i in range(50):
@@ -88,13 +90,13 @@ try:
         time.sleep(2) # Wait for 2 seconds before sending the next set of data
 
 except socket.gaierror: # If there is a network error
-    window['-STATUS-'].update('Error: Cannot resolve host', text_color='red') 
+    window['-STATUS-'].update('Error: Cannot resolve host', text_color='red') # Update GUI with error
     print('There an error resolving the host') # Print error message
     sock.close() # Close the socket
     
 finally:
     # Clean up and close everything
-    window['-STATUS-'].update('Disconnected', text_color='red')
+    window['-STATUS-'].update('Disconnected', text_color='red') # Update GUI to show disconnection
     window.read(timeout=2000) # Keep the window open for 2 seconds
     sock.close() # Close the socket
     window.close() # Close the GUI window   

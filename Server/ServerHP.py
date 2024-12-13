@@ -3,27 +3,32 @@ import json, time
 import PySimpleGUI as sg
 from random import randint
 
-CIRCLE = '⚫'   
-CIRCLE_OUTLINE = '⚪' 
+# Unicode symbols for LED states
+CIRCLE = '⚫'  # LED is ON
+CIRCLE_OUTLINE = '⚪' # LED is OFF
 
+#GUI Setup
 sg.theme('Light Yellow')
 
+# Function to create an LED display in the GUI
 def LED(color, key):
     return sg.Text(CIRCLE_OUTLINE, text_color=color, key=key)
 
+# Define the layout of the GUI window
 layout = [
     [sg.Text('Data')],
     [sg.Multiline(
         'Waiting for data...',
-        size=(50, 10),  
+        size=(50, 10),  # Size of the data display box
         justification='center',
         font=("Helvetica", 15),
-        key='-OUTPUT-'
+        key='-OUTPUT-'  # Key to update this area later
     )],
-    [sg.Text('LED Status:'), LED('Blue', '-LED-')], 
-    [sg.Exit(tooltip='Click to exit the program')] 
+    [sg.Text('LED Status:'), LED('Blue', '-LED-')],  # LED display
+    [sg.Exit(tooltip='Click to exit the program')]  # Exit button
 ]
 
+# Create the GUI window
 window = sg.Window('Server Status', layout, finalize=True)
 
 # Create a socket to communicate with the client
@@ -42,8 +47,10 @@ print('got connection from ', addr)
 
 def main():
     while True:
+        # Check for GUI events
         event, values = window.read(timeout=100) 
         if event == sg.WINDOW_CLOSED or event == 'Exit':
+            # Exit the program if the user closes the window or clicks Exit
             print("Exiting...")
             window.close()
             break
@@ -76,8 +83,10 @@ def main():
                 f"ARM Frequency: {frequency} Hz\n"
             )
             
+            # Update the data display area in the GUI
             window['-OUTPUT-'].update(display_text)
             
+            # change the LED state to ON or OFF
             window['-LED-'].update(CIRCLE if randint(1, 2) < 2 else CIRCLE_OUTLINE)
             
         except KeyError as e:
