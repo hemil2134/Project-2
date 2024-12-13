@@ -6,20 +6,29 @@ from random import randint as randint
 from pathlib import Path
 import PySimpleGUI as sg
 
-from pathlib import Path
 
-IS_RPI = Path("/etc/rpi-issue").exists() # used to check - we're using the Pi
-print(IS_RPI)
+sg.theme('Light Yellow')
+layout = [
+    [sg.Text('Connection Status:')], # Label for connection status
+    [sg.Text('Disconnected', key='-STATUS-', size=(20, 1), font=('Helvetica', 15))],  # Status display
+    [sg.Exit(tooltip='Click to exit the program')] # Exit button
+]
+
+window = sg.Window('Client Status', layout, finalize=True)
+
+IS_RPI = Path("/etc/rpi-issue").exists() # File exists only on Raspberry Pi
+print(IS_RPI) # Print whether it is running on Raspberry Pi
 
 if (IS_RPI):
-    print("Correct Hardware")
+    print("Correct Hardware") 
     try:
         sock = socket. socket()
     except socket.error as err:
         print('Socket error because of %s' %(err))
 
+# Network settings
 port = 1500
-address = "127.0.0.1"
+address = "10.102.13.211" # IP address of the server
 
 # Function to get the CPU temperature
 def measure_temp():
@@ -52,8 +61,16 @@ def clock_frequency_arm():
     return cfa2
 
 try:
-    sock.connect((address, port))
+    sock.connect((address, port)) # Connect to the given IP and port
+    window['-STATUS-'].update('Connected', text_color='green')
+
+    # Loop to send data 50 times
     for i in range(50):
+        event, values = window.read(timeout=100)
+        if event == sg.WINDOW_CLOSED or event == 'Exit':
+            break
+        
+        # Gather data into a JSON object
         jsonResult = {"temp-core":measure_temp(),
                       "volts":measure_volts_core(),
                       "sdram volts":measure_volts_sdram_i(),
@@ -71,9 +88,13 @@ try:
         time.sleep(2) # Wait for 2 seconds before sending the next set of data
 
 except socket.gaierror: # If there is a network error
+    window['-STATUS-'].update('Error: Cannot resolve host', text_color='red') 
     print('There an error resolving the host') # Print error message
     sock.close() # Close the socket
     
 finally:
     # Clean up and close everything
-    sock.close() # Close the socket  
+    window['-STATUS-'].update('Disconnected', text_color='red')
+    window.read(timeout=2000) # Keep the window open for 2 seconds
+    sock.close() # Close the socket
+    window.close() # Close the GUI window   

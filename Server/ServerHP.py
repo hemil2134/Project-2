@@ -1,24 +1,53 @@
-'''This is the server, should run first, in sperarte thonny instance,
-gets client (pi) data'''
-
 import socket
 import json, time
 import PySimpleGUI as sg
 from random import randint
 
+CIRCLE = '⚫'   
+CIRCLE_OUTLINE = '⚪' 
+
+sg.theme('Light Yellow')
+
+def LED(color, key):
+    return sg.Text(CIRCLE_OUTLINE, text_color=color, key=key)
+
+layout = [
+    [sg.Text('Data')],
+    [sg.Multiline(
+        'Waiting for data...',
+        size=(50, 10),  
+        justification='center',
+        font=("Helvetica", 15),
+        key='-OUTPUT-'
+    )],
+    [sg.Text('LED Status:'), LED('Blue', '-LED-')], 
+    [sg.Exit(tooltip='Click to exit the program')] 
+]
+
+window = sg.Window('Server Status', layout, finalize=True)
+
+# Create a socket to communicate with the client
 sock = socket.socket()
 print("Socket created ... ")
 
 port = 1500
-sock.bind(('127.0.0.1', port)) # to run on Pi with local client
-sock.listen(5)
+sock.bind(('10.102.13.211', port)) # Server IP address and port
+sock.listen(5) # Allow up to 5 connection requests
 
 print('socket is listening')
+
+# Accept a connection from the client
 c, addr = sock.accept()
-print('got connection from ', addr) # locks to client I.P
+print('got connection from ', addr) 
 
 def main():
     while True:
+        event, values = window.read(timeout=100) 
+        if event == sg.WINDOW_CLOSED or event == 'Exit':
+            print("Exiting...")
+            window.close()
+            break
+        
         # Receive data from the client
         jsonReceived = c.recv(1024)
         if not jsonReceived: # If no data is received
@@ -47,6 +76,10 @@ def main():
                 f"ARM Frequency: {frequency} Hz\n"
             )
             
+            window['-OUTPUT-'].update(display_text)
+            
+            window['-LED-'].update(CIRCLE if randint(1, 2) < 2 else CIRCLE_OUTLINE)
+            
         except KeyError as e:
             # If a key is missing in the received JSON data, print an error message
             print("Missing key in received JSON:", e)
@@ -57,6 +90,9 @@ def main():
 if __name__== '__main__':
     try:
         main()
+        window.close()
     except KeyboardInterrupt:
         print("Bye .... ")
+        window.close()
         sock.close()
+
